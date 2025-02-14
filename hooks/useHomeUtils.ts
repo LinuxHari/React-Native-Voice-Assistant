@@ -22,7 +22,7 @@ const useHomeUtils = () => {
     aac: "audio/aac",
   };
 
-  // get microphone permission
+  // Get microphone permission
   const getMicrophonePermission = async () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
@@ -93,7 +93,6 @@ const useHomeUtils = () => {
       const mimeType =
         MIME_TYPES[fileExtension as keyof typeof MIME_TYPES] || MIME_TYPES.webm;
 
-      // send audio to whisper API for transcription
       const { transcript, success } = await sendAudioToGemini(uri!, mimeType);
 
       if (!success) {
@@ -104,7 +103,6 @@ const useHomeUtils = () => {
 
       setText(transcript);
 
-      // send the transcript to gpt-4 API for response
       await sendToGemini(transcript);
     } catch (error) {
       Alert.alert("Error", "Failed to stop recording");
@@ -122,7 +120,6 @@ const useHomeUtils = () => {
     }
   };
 
-  // send text to gpt4 API
   const sendToGemini = async (text: string) => {
     try {
       const { success, data } = await getAnswerFromGemini(text);
@@ -153,6 +150,8 @@ const useHomeUtils = () => {
     Speech.speak(text, options);
   };
 
+  const stopSpeaking = () => Speech.stop()
+
   useEffect(() => {
     if (AISpeaking) {
       lottieRef.current?.play();
@@ -160,7 +159,7 @@ const useHomeUtils = () => {
       lottieRef.current?.reset();
     }
   }, [AISpeaking]);
-  return {text, isRecording, loading, AIResponse, setLoading, setAIResponse, sendAudioToGemini, sendToGemini, startRecording, setIsRecording, setRecording, setText, lottieRef, stopRecording, speakText}
+  return {text, isRecording, loading, AIResponse, setLoading, setAIResponse, sendAudioToGemini, sendToGemini, startRecording, setIsRecording, setRecording, setText, lottieRef, stopRecording, speakText, stopSpeaking}
 }
 
 export default useHomeUtils

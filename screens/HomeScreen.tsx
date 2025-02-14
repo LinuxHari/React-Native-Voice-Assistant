@@ -25,6 +25,7 @@ export default function HomeScreen() {
     startRecording,
     setIsRecording,
     setText,
+    stopSpeaking
   } = useHomeUtils();
 
   return (
@@ -67,6 +68,7 @@ export default function HomeScreen() {
           onPress={() => {
             setIsRecording(false);
             setAIResponse(false);
+            stopSpeaking();
             setText("");
           }}
         >
@@ -159,14 +161,12 @@ export default function HomeScreen() {
           style={{
             position: "absolute",
             bottom: verticalScale(40),
-            left: 600,
+            left: 0,
             paddingHorizontal: scale(30),
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
             width: scale(360),
-            height: scale(200),
-            overflow: "scroll"
           }}
         >
           <TouchableOpacity onPress={() => sendToGemini(text)}>
