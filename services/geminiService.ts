@@ -28,25 +28,30 @@ export const getTextFromAudio = async (
   mimeType: string,
   srcLang?: string,
   targetLang?: string
-):Promise<ApiResult> => {
+): Promise<ApiResult> => {
   try {
     const base64 = await FileSystem.readAsStringAsync(uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    const context = generateContext(srcLang, targetLang)
+    const context = generateContext(srcLang, targetLang);
     const result = await model.generateContent([
       {
         inlineData: { mimeType, data: base64 },
       },
       {
-        text: context
+        text: context,
       },
     ]);
 
-    const data = JSON.parse(result.response?.candidates?.[0]?.content?.parts?.[0].text?.slice(7, -4) as string)  
-    return {success: true, data};
+    const data = JSON.parse(
+      result.response?.candidates?.[0]?.content?.parts?.[0].text?.slice(
+        7,
+        -4
+      ) as string
+    );
+    return { success: true, data };
   } catch (error) {
-    return {success: false};
+    return { success: false };
   }
 };

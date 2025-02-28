@@ -128,7 +128,11 @@ const useAssistantUtils = () => {
       setMessages((prevMessages) => [
         ...prevMessages,
         { type: "user", message: data.user, id: prevMessages.length },
-        { type: "assistant", message: data.assistant, id: prevMessages.length + 1 },
+        {
+          type: "assistant",
+          message: data.assistant,
+          id: prevMessages.length + 1,
+        },
       ]);
     } catch (error) {
       Alert.alert("Error", "Failed to stop recording");
@@ -169,8 +173,13 @@ const useAssistantUtils = () => {
       )
         return { success: false, data };
 
-      if(data.assistant.toLowerCase().includes("could not understand the audio"))
-        return {success: false, data: {assistant: data.assistant, user: null}}
+      if (
+        data.assistant.toLowerCase().includes("could not understand the audio")
+      )
+        return {
+          success: false,
+          data: { assistant: data.assistant, user: null },
+        };
       return { success: true, data };
     } catch (error) {
       return { success: false };
@@ -195,45 +204,49 @@ const useAssistantUtils = () => {
     Speech.stop(), setAISpeaking(false);
   };
 
-  const sendAgain = async(srcLang?: string, targetLang?: string) => {
-   try{
-    setLoading(true)
-    const prevRecording = recording?.getURI() as string 
+  const sendAgain = async (srcLang?: string, targetLang?: string) => {
+    try {
+      setLoading(true);
+      const prevRecording = recording?.getURI() as string;
 
-    if(!prevRecording)
-      return Alert.alert("Error", "No previous recordings!");
-   
-    const { data, success } = await sendAudioToGemini(
-      prevRecording,
-      getAudioExtension(prevRecording),
-      srcLang,
-      targetLang
-    );
+      if (!prevRecording)
+        return Alert.alert("Error", "No previous recordings!");
 
-    if (!success || !data || !data?.user) {
-      const text = data?.assistant || "Something went wrong.";
-      setText(text);
-      speakText(text);
+      const { data, success } = await sendAudioToGemini(
+        prevRecording,
+        getAudioExtension(prevRecording),
+        srcLang,
+        targetLang
+      );
+
+      if (!success || !data || !data?.user) {
+        const text = data?.assistant || "Something went wrong.";
+        setText(text);
+        speakText(text);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "assistant", message: text, id: prevMessages.length },
+        ]);
+        return;
+      }
+
+      setText(data.assistant);
+      setAIResponse(true);
+      await speakText(data.assistant);
       setMessages((prevMessages) => [
         ...prevMessages,
-        { type: "assistant", message: text, id: prevMessages.length },
+        { type: "user", message: data.user, id: prevMessages.length },
+        {
+          type: "assistant",
+          message: data.assistant,
+          id: prevMessages.length + 1,
+        },
       ]);
-      return;
+    } catch (_) {
+      Alert.alert("Error", "No previous recordings!");
+    } finally {
+      setLoading(false);
     }
-
-    setText(data.assistant);
-    setAIResponse(true);
-    await speakText(data.assistant);
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { type: "user", message: data.user, id: prevMessages.length },
-      { type: "assistant", message: data.assistant, id: prevMessages.length + 1 },
-    ]);
-   } catch(_){
-    Alert.alert("Error", "No previous recordings!");
-   } finally{
-    setLoading(false)
-   }
   };
 
   return {
