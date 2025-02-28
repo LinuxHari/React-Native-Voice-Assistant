@@ -5,7 +5,7 @@ const useTranslatorUtils = () => {
   const {
     isRecording,
     messages,
-    sendToGemini,
+    sendAgain,
     loading,
     text,
     stopRecording,
@@ -38,7 +38,7 @@ const useTranslatorUtils = () => {
   return {
     isRecording,
     messages,
-    sendToGemini,
+    sendAgain: () => sendAgain(sourceLang, targetLang),
     loading,
     text,
     stopRecording: () => stopRecording(sourceLang, targetLang),

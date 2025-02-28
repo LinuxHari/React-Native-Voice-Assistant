@@ -16,7 +16,7 @@ type BodySectionProps = {
   loading: boolean;
   text: string;
   AISpeaking: boolean;
-  sendToGemini: (text: string) => void;
+  sendAgain: () => void;
   stopRecording: VoidFunction;
   startRecording: VoidFunction;
   speakText: (text: string) => void;
@@ -30,7 +30,7 @@ const BodySection = ({
   loading,
   text,
   AISpeaking,
-  sendToGemini,
+  sendAgain,
   stopRecording,
   startRecording,
   speakText,
@@ -74,7 +74,7 @@ const BodySection = ({
         text={text}
         startRecording={startRecording}
         stopRecording={stopRecording}
-        sendToGemini={sendToGemini}
+        sendAgain={sendAgain}
         speakText={speakText}
         isRecording={isRecording}
         loading={loading}

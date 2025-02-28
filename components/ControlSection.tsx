@@ -12,13 +12,13 @@ type ControlSectionProps = {
   loading: boolean;
   stopRecording: VoidFunction;
   startRecording: VoidFunction;
-  sendToGemini: (text: string) => void;
+  sendAgain: () => void;
   speakText: (text: string) => void;
   text: string;
 };
 
 const ControlSection = ({
-  sendToGemini,
+  sendAgain,
   isRecording,
   loading,
   speakText,
@@ -29,7 +29,7 @@ const ControlSection = ({
   return (
     <View style={styles.bottomContainer}>
       <TouchableOpacity
-        onPress={() => sendToGemini(text)}
+        onPress={sendAgain}
         disabled={isRecording || loading}
       >
         <Regenerate width={scale(20)} height={scale(20)} />

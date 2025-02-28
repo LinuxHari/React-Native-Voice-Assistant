@@ -1,8 +1,9 @@
-import { getAnswerFromGemini, getTextFromAudio } from "@/services/geminiService";
+import { getTextFromAudio } from "@/services/geminiService";
 import { Audio } from "expo-av";
 import { useState } from "react";
 import { Alert } from "react-native";
 import * as Speech from "expo-speech";
+import getAudioExtension from "@/utils/getAudioExtension";
 
 export type Message = {
   type: "user" | "assistant";
@@ -17,16 +18,9 @@ const useAssistantUtils = () => {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [AIResponse, setAIResponse] = useState(false);
   const [AISpeaking, setAISpeaking] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([{type: "assistant", id: 0, message: "Hello, how can I help you?"}]);
-
-  const MIME_TYPES = {
-    m4a: "audio/m4a",
-    mp3: "audio/mpeg",
-    wav: "audio/wav",
-    webm: "audio/webm",
-    ogg: "audio/ogg",
-    aac: "audio/aac",
-  };
+  const [messages, setMessages] = useState<Message[]>([
+    { type: "assistant", id: 0, message: "Hello, how can I help you?" },
+  ]);
 
   const recordingOptions = {
     android: {
@@ -55,7 +49,10 @@ const useAssistantUtils = () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
-        Alert.alert("Permission", "Please grant permission to access microphone");
+        Alert.alert(
+          "Permission",
+          "Please grant permission to access microphone"
+        );
         return false;
       }
       return true;
@@ -102,80 +99,81 @@ const useAssistantUtils = () => {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
 
       const uri = recording.getURI();
-      setRecording(null);
 
       if (!uri) throw new Error("Recording URI is undefined");
 
-      const fileExtension = uri.split(".").pop()?.toLowerCase();
-      const mimeType = MIME_TYPES[fileExtension as keyof typeof MIME_TYPES] || MIME_TYPES.webm;
+      const mimeType = getAudioExtension(uri);
 
-      const { transcript, success } = await sendAudioToGemini(uri, mimeType, srcLang,);
+      const { data, success } = await sendAudioToGemini(
+        uri,
+        mimeType,
+        srcLang,
+        targetLang
+      );
 
-      if (!success) {
-        setText(transcript);
-        speakText(transcript);
+      if (!success || !data || !data?.user) {
+        const text = data?.assistant || "Something went wrong.";
+        setText(text);
+        speakText(text);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "assistant", message: transcript, id: prevMessages.length },
+          { type: "assistant", message: text, id: prevMessages.length },
         ]);
         return;
       }
 
-      setText(transcript);
+      setText(data.assistant);
+      setAIResponse(true);
+      await speakText(data.assistant);
       setMessages((prevMessages) => [
         ...prevMessages,
-        { type: "user", message: transcript, id: prevMessages.length },
+        { type: "user", message: data.user, id: prevMessages.length },
+        { type: "assistant", message: data.assistant, id: prevMessages.length + 1 },
       ]);
-      await sendToGemini(transcript, srcLang, targetLang);
     } catch (error) {
       Alert.alert("Error", "Failed to stop recording");
-    } finally{
+    } finally {
       setLoading(false);
-    } 
+    }
   };
 
-  const cancelRecording = async() => {
-    if(recording){
+  const cancelRecording = async () => {
+    if (recording) {
       setIsRecording(false);
       await recording.stopAndUnloadAsync();
     }
-  }
-
-  const sendAudioToGemini = async (uri: string, mimeType: string, srcLang?: string) => {
-    try {
-      const text = await getTextFromAudio(uri, mimeType, srcLang);
-      if (!text || text.toLowerCase().includes("something went wrong")) {
-        throw new Error("Invalid text");
-      }
-      if(text.toLowerCase().includes("detected language is different"))
-        return {success: false, transcript: text}
-
-      return { success: true, transcript: text };
-    } catch (error) {
-      return { success: false, transcript: "Something went wrong, try again." };
-    }
   };
 
-  const sendToGemini = async (text: string, srcLang?: string, targerLang?: string) => {
+  const sendAudioToGemini = async (
+    uri: string,
+    mimeType: string,
+    srcLang?: string,
+    targetLang?: string
+  ) => {
     try {
-      const { success, data } = await getAnswerFromGemini(text, srcLang, targerLang);
-      if (!success || !data) 
-        throw new Error("Failed to get response");
+      const { success, data } = await getTextFromAudio(
+        uri,
+        mimeType,
+        srcLang,
+        targetLang
+      );
+      if (
+        !success ||
+        !data ||
+        data?.assistant.toLowerCase().includes("something went wrong")
+      ) {
+        throw new Error("Invalid text");
+      }
+      if (
+        data.assistant.toLowerCase().includes("detected language is different")
+      )
+        return { success: false, data };
 
-      setText(data);
-      setAIResponse(true);
-      await speakText(data);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "assistant", message: data, id: prevMessages.length },
-      ]);
-      return data;
+      if(data.assistant.toLowerCase().includes("could not understand the audio"))
+        return {success: false, data: {assistant: data.assistant, user: null}}
+      return { success: true, data };
     } catch (error) {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "assistant", message: "Something went wrong", id: prevMessages.length },
-      ]);
-      await speakText("Something went wrong, try again later.");
+      return { success: false };
     } finally {
       setLoading(false);
     }
@@ -194,8 +192,48 @@ const useAssistantUtils = () => {
   };
 
   const stopSpeaking = () => {
-    Speech.stop(),
-    setAISpeaking(false)
+    Speech.stop(), setAISpeaking(false);
+  };
+
+  const sendAgain = async(srcLang?: string, targetLang?: string) => {
+   try{
+    setLoading(true)
+    const prevRecording = recording?.getURI() as string 
+
+    if(!prevRecording)
+      return Alert.alert("Error", "No previous recordings!");
+   
+    const { data, success } = await sendAudioToGemini(
+      prevRecording,
+      getAudioExtension(prevRecording),
+      srcLang,
+      targetLang
+    );
+
+    if (!success || !data || !data?.user) {
+      const text = data?.assistant || "Something went wrong.";
+      setText(text);
+      speakText(text);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "assistant", message: text, id: prevMessages.length },
+      ]);
+      return;
+    }
+
+    setText(data.assistant);
+    setAIResponse(true);
+    await speakText(data.assistant);
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { type: "user", message: data.user, id: prevMessages.length },
+      { type: "assistant", message: data.assistant, id: prevMessages.length + 1 },
+    ]);
+   } catch(_){
+    Alert.alert("Error", "No previous recordings!");
+   } finally{
+    setLoading(false)
+   }
   };
 
   return {
@@ -206,7 +244,7 @@ const useAssistantUtils = () => {
     setLoading,
     setAIResponse,
     sendAudioToGemini,
-    sendToGemini,
+    sendAgain,
     startRecording,
     stopRecording,
     speakText,

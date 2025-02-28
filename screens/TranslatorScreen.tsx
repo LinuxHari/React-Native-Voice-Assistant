@@ -11,7 +11,7 @@ const TranslatorScreen: React.FC = () => {
   const {
     isRecording,
     messages,
-    sendToGemini,
+    sendAgain,
     loading,
     text,
     stopRecording,
@@ -67,7 +67,7 @@ const TranslatorScreen: React.FC = () => {
         loading={loading}
         text={text}
         AISpeaking={AISpeaking}
-        sendToGemini={sendToGemini}
+        sendAgain={sendAgain}
         stopRecording={stopRecording}
         startRecording={startRecording}
         speakText={speakText}

@@ -1,5 +1,5 @@
 import { StatusBar, View } from "react-native";;
-import useHomeUtils from "@/hooks/useAssistantUtils";
+import useAssistantUtils from "@/hooks/useAssistantUtils";
 import styles from "@/styles/AssistantStyle";
 import BodySection from "@/components/BodySection";
 import HeaderSection from "@/components/HeaderSection";
@@ -12,13 +12,13 @@ export default function HomeScreen() {
     text,
     stopRecording,
     speakText,
-    sendToGemini,
+    sendAgain,
     startRecording,
     messages,
     stopSpeaking,
     AISpeaking,
     cancelRecording,
-  } = useHomeUtils();
+  } = useAssistantUtils();
 
   return (
     <View style={styles.container}>
@@ -37,7 +37,7 @@ export default function HomeScreen() {
         loading={loading}
         text={text}
         AISpeaking={AISpeaking}
-        sendToGemini={sendToGemini}
+        sendAgain={sendAgain}
         stopRecording={stopRecording}
         startRecording={startRecording}
         speakText={speakText}
