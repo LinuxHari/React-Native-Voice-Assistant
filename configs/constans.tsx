@@ -1,24 +1,27 @@
-import OnBoarding1 from "@/assets/svgs/onboarding1";
-import OnBoarding2 from "@/assets/svgs/onboarding2";
-import OnBoarding3 from "@/assets/svgs/onboarding3";
+import getName from "@/utils/getName"
 
-export const onBoardingData:onBoardingDataType[] = [
-  {
-    id: 1,
-    title: "Meet Your AI Companion",
-    subtitle: "Discover the future of communication and knowledge through interactive AI conversations.",
-    image: <OnBoarding1 />,
+export const errorCodes = {
+  detection: {
+    code: "01GLLMD",
+    getMessage: (srcLang: string) => `The detected language is different from ${srcLang}, please speak in ${srcLang}.`
   },
-  {
-    id: 2,
-    title: "Ask, Learn, Evolve",
-    subtitle: "Engage with AI, ask questions, and unlock insights to help you grow in real-time.",
-    image: <OnBoarding2 />,
+  unclear: {
+    code: "02GLLMU",
+    getMessage: () => "I could not understand the audio clearly, please try again."
   },
-  {
-    id: 3,
-    title: "Explore your life",
-    subtitle: "Tailor the AI experience to fit your unique needs and get personalized responses anytime.",
-    image: <OnBoarding3 />,
+  wrong: {
+    code: "03GLLMW",
+    getMessage: () => "Something went wrong, try again." 
+  }
+}
+
+export const featureCodes = {
+  call: {
+    code: "01GLLMC1F1",
+    getMessage: (assistantResp: string) => `Calling ${getName(assistantResp)}`
   },
-];
+  appOpen: {
+    code: "02GLLMA1F2",
+    getMessage: (assistantResp: string) => `Opening ${getName(assistantResp)}`
+  }
+}

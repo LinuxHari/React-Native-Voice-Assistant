@@ -4,9 +4,12 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import * as Speech from "expo-speech";
 import getAudioExtension from "@/utils/getAudioExtension";
+import { errorCodes, featureCodes } from "@/configs/constans";
+import useSystemHandler from "./useSystemHandler";
+import getName from "@/utils/getName";
 
 export type Message = {
-  type: "user" | "assistant";
+  type: "user" | "assistant" | "bot";
   message: string;
   id: number;
 };
@@ -21,6 +24,8 @@ const useAssistantUtils = () => {
   const [messages, setMessages] = useState<Message[]>([
     { type: "assistant", id: 0, message: "Hello, how can I help you?" },
   ]);
+
+  const { makeCall, openApp } = useSystemHandler()
 
   const recordingOptions = {
     android: {
@@ -87,9 +92,8 @@ const useAssistantUtils = () => {
   };
 
   const stopRecording = async (srcLang?: string, targetLang?: string) => {
-    if (!recording) {
-      return;
-    }
+    if (!recording) 
+      return Alert.alert("Error", "No recording!");
 
     try {
       setIsRecording(false);
@@ -98,48 +102,52 @@ const useAssistantUtils = () => {
       await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
 
-      const uri = recording.getURI();
-
-      if (!uri) throw new Error("Recording URI is undefined");
-
-      const mimeType = getAudioExtension(uri);
-
-      const { data, success } = await sendAudioToGemini(
-        uri,
-        mimeType,
-        srcLang,
-        targetLang
-      );
-
-      if (!success || !data || !data?.user) {
-        const text = data?.assistant || "Something went wrong.";
-        setText(text);
-        speakText(text);
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "assistant", message: text, id: prevMessages.length },
-        ]);
-        return;
-      }
-
-      setText(data.assistant);
-      setAIResponse(true);
-      await speakText(data.assistant);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "user", message: data.user, id: prevMessages.length },
-        {
-          type: "assistant",
-          message: data.assistant,
-          id: prevMessages.length + 1,
-        },
-      ]);
+     handleUserInput(srcLang, targetLang)
     } catch (error) {
       Alert.alert("Error", "Failed to stop recording");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleUserInput = async(srcLang?: string, targetLang?: string) => {
+    const uri = recording?.getURI();
+
+    if (!uri) throw new Error("No recording found");
+
+    const mimeType = getAudioExtension(uri);
+
+    const { data, success } = await sendAudioToGemini(
+      uri,
+      mimeType,
+      srcLang,
+      targetLang
+    );
+
+    if (!success || !data || !data?.user) {
+      const text = data?.assistant || "Something went wrong.";
+      setText(text);
+      speakText(text);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "assistant", message: text, id: prevMessages.length },
+      ]);
+      return;
+    }
+
+    setText(data.assistant);
+    setAIResponse(true);
+    await speakText(data.assistant);
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { type: "user", message: data.user, id: prevMessages.length },
+      {
+        type: "assistant",
+        message: data.assistant,
+        id: prevMessages.length + 1,
+      },
+    ]);
+  }
 
   const cancelRecording = async () => {
     if (recording) {
@@ -164,22 +172,32 @@ const useAssistantUtils = () => {
       if (
         !success ||
         !data ||
-        data?.assistant.toLowerCase().includes("something went wrong")
+        data?.assistant.includes(errorCodes.wrong.code)
       ) {
         throw new Error("Invalid text");
       }
       if (
-        data.assistant.toLowerCase().includes("detected language is different")
+        data.assistant.includes(errorCodes.detection.code)
       )
-        return { success: false, data };
+        return { success: false, data: {assistant: errorCodes.detection.getMessage(srcLang as string)} };
 
       if (
-        data.assistant.toLowerCase().includes("could not understand the audio")
+        data.assistant.includes(errorCodes.unclear.code)
       )
         return {
           success: false,
-          data: { assistant: data.assistant, user: null },
+          data: { assistant: errorCodes.unclear.getMessage(), user: null },
         };
+      if(data.assistant.includes(featureCodes.call.code)){
+          const name = getName(data.assistant)
+          await makeCall(name)
+          return { success: true, data: {user: data.user, assistant: `Calling ${name}...`} }
+      }
+      if(data.assistant.includes(featureCodes.appOpen.code)){
+        const name = getName(data.assistant)
+        await openApp(name)
+        return { success: true, data: {user: data.user, assistant: `Opening ${name}...`} }
+    }
       return { success: true, data };
     } catch (error) {
       return { success: false };
@@ -212,36 +230,7 @@ const useAssistantUtils = () => {
       if (!prevRecording)
         return Alert.alert("Error", "No previous recordings!");
 
-      const { data, success } = await sendAudioToGemini(
-        prevRecording,
-        getAudioExtension(prevRecording),
-        srcLang,
-        targetLang
-      );
-
-      if (!success || !data || !data?.user) {
-        const text = data?.assistant || "Something went wrong.";
-        setText(text);
-        speakText(text);
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "assistant", message: text, id: prevMessages.length },
-        ]);
-        return;
-      }
-
-      setText(data.assistant);
-      setAIResponse(true);
-      await speakText(data.assistant);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "user", message: data.user, id: prevMessages.length },
-        {
-          type: "assistant",
-          message: data.assistant,
-          id: prevMessages.length + 1,
-        },
-      ]);
+     handleUserInput(srcLang, targetLang)
     } catch (_) {
       Alert.alert("Error", "No previous recordings!");
     } finally {

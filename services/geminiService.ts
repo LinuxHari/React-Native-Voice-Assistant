@@ -50,6 +50,7 @@ export const getTextFromAudio = async (
         -4
       ) as string
     );
+
     return { success: true, data };
   } catch (error) {
     return { success: false };
