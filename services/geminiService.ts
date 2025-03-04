@@ -45,7 +45,7 @@ export const getTextFromAudio = async (
     ]);
 
     const data = JSON.parse(
-      result.response?.candidates?.[0]?.content?.parts?.[0].text?.slice(
+      result.response.text()?.slice(
         7,
         -4
       ) as string

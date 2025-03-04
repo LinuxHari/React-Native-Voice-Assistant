@@ -68,12 +68,12 @@ const generateContext = (srcLang?: string, targetLang?: string) => {
       * If the user's **EXPLICIT** intent is to make a call, **RETURN ONLY**:
           * \`{"user": "<transcribed_user_audio>", "assistant": "${featureCodes.call.code} Call [contact_name]"}\`
           * **REPLACE** \`[contact_name]\` with the **EXACT** name the user provided.
-          * **DO NOT** add any other text.
+          * **DO NOT** add any other text and response **MUST BE** in English for BOTH user and assistant.
   3.  **Application Opening Command (Execute):**
       * If the user's **EXPLICIT** intent is to open an application, **RETURN ONLY**:
           * \`{"user": "<transcribed_user_audio>", "assistant": "${featureCodes.appOpen.code} Open [application_name]"}\`
           * **REPLACE** \`[application_name]\` with the **EXACT** name the user provided.
-          * **DO NOT** add any other text.
+          * **DO NOT** add any other text and response **MUST BE** in English for BOTH user and assistant.
   4.  **General Response (If No Command):**
       * If the user's intent is **NOT** a call or application opening command, generate a relevant response to the spoken audio.
       * If the audio is uninterpretable, proceed to error handling.
